@@ -102,8 +102,14 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      - name: List downloaded files
+        shell: bash
+        run: ls -laR artifacts
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          # 递归匹配:无论 artifacts 是扁平还是按包分子目录都能命中
+          files: artifacts/**/*
+          fail_on_unmatched_files: true
           generate_release_notes: true
