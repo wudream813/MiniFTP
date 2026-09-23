@@ -1,0 +1,109 @@
+# MiniFTP - 跨平台编译 + 自动发布 Release
+#
+# 触发时机:
+#   - push 到 main / PR: 编译三平台 + Linux 跑功能测试,产物存为 Artifacts
+#   - push 标签 v* (如 v1.0.0): 额外创建 GitHub Release 并附上三平台可执行文件
+#   - 手动: Actions 页点 Run workflow
+#
+# 发版流程: git tag v1.0.1 && git push origin v1.0.1
+
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+            pkg: miniftp-windows-x64.zip
+          - os: ubuntu-latest
+            name: linux-x64
+            pkg: miniftp-linux-x64.tar.gz
+          - os: macos-latest
+            name: macos-arm64
+            pkg: miniftp-macos-arm64.tar.gz
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (CMake)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./build/bin/Release/miniftp.exe --help
+          else
+            ./build/bin/miniftp --help
+          fi
+
+      - name: Functional test (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ./build/bin/miniftp --port 2121 --root ./ci-data &
+          SRV_PID=$!
+          sleep 2
+          python3 test_client.py
+          kill $SRV_PID
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp build/bin/Release/miniftp.exe dist/
+            powershell -NoProfile -Command "Compress-Archive -Path dist/miniftp.exe -DestinationPath '${{ matrix.pkg }}'"
+          else
+            cp build/bin/miniftp dist/
+            chmod +x dist/miniftp
+            tar -czvf '${{ matrix.pkg }}' -C dist miniftp
+          fi
+          ls -la '${{ matrix.pkg }}'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.pkg }}
+          if-no-files-found: error
+
+  release:
+    name: release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

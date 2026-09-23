@@ -1,5 +1,9 @@
 # MiniFTP 🗂️ — 零配置跨平台 FTP 服务器(C++)
 
+[![Build & Release](https://github.com/wudream813/MiniFTP/actions/workflows/release.yml/badge.svg)](https://github.com/wudream813/MiniFTP/actions/workflows/release.yml)
+
+> 💡 不想自己编译?直接去 [Releases](https://github.com/wudream813/MiniFTP/releases) 下载对应系统的可执行文件,双击即用。
+
 一个`.cpp`直出的迷你 FTP **服务器**:**双击即跑,无需任何配置**,
 局域网内另一台电脑打开文件管理器就能拖文件。
 
