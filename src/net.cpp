@@ -4,9 +4,7 @@
 #include <cstring>
 #include <thread>
 
-#ifdef _WIN32
-  #include <windows.h>
-#else
+#ifndef _WIN32
   #include <ifaddrs.h>
   #include <net/if.h>
 #endif

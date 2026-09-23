@@ -1,5 +1,6 @@
 #include "utils.h"
 
+#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <ctime>

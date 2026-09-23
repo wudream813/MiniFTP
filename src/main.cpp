@@ -10,13 +10,22 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#ifdef _WIN32
-  #include <windows.h>
-#endif
 
 #include "ftp_server.h"
 #include "net.h"
 #include "utils.h"
+
+// 注意:必须在 net.h(winsock2.h)之后包含 windows.h,
+// 否则 winsock.h v1 与 winsock2.h 冲突导致 MSVC 编译失败。
+#ifdef _WIN32
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
+  #include <windows.h>
+#endif
 
 namespace fs = std::filesystem;
 using miniftp::FtpServer;
